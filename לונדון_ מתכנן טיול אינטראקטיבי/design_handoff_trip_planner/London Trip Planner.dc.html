@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<template id="__bundler_thumbnail" data-bg-color="#1B2559">
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#1B2559"/>
+  <circle cx="600" cy="400" r="180" fill="#2F5FE0"/>
+  <path d="M600 300 L640 400 L600 500 L560 400 Z" fill="#fff"/>
+  <text x="600" y="650" font-family="sans-serif" font-size="60" font-weight="700" fill="#fff" text-anchor="middle">London 2026</text>
+</svg>
+</template>
+<style>
+  body{margin:0;background:#F3F5FA;}
+  a{color:#2F5FE0;}
+  a:hover{color:#1B3FB0;}
+  ::-webkit-scrollbar{height:6px;width:6px}
+  ::-webkit-scrollbar-thumb{background:#C7CEE0;border-radius:10px}
+  ::-webkit-scrollbar-button{display:none;width:0;height:0}
+  .tp-daypills{scrollbar-width:thin;}
+  input,select,textarea{font-family:inherit}
+  html{-webkit-text-size-adjust:100%;}
+  body{overflow-x:hidden;}
+  *,*::before,*::after{box-sizing:border-box;}
+  *{-webkit-tap-highlight-color:rgba(47,95,224,0.15);}
+  @media (max-width:900px){
+    .tp-timer{order:3;}
+    .tp-nav{order:4;}
+  }
+  @media (max-width:720px){
+    /* iOS/Android: 16px inputs prevent focus zoom */
+    input,select,textarea{font-size:16px !important;}
+    .tp-header{padding-top:calc(14px + env(safe-area-inset-top)) !important;padding-left:calc(16px + env(safe-area-inset-left)) !important;padding-right:calc(16px + env(safe-area-inset-right)) !important;}
+    .tp-tripbar{width:100%;}
+    .tp-tripbar .tp-tripselect{flex:1 1 auto;max-width:none !important;min-height:44px;}
+    .tp-tripbar button{min-height:44px;padding-left:18px !important;padding-right:18px !important;}
+    .tp-timer{width:100%;justify-content:center;padding:8px 12px !important;}
+    .tp-navbtn{min-height:44px;}
+    .tp-daypills button{min-height:44px;}
+    .tp-toprow-actions button{min-height:44px;justify-content:center;}
+    .tp-main{padding-left:calc(12px + env(safe-area-inset-left)) !important;padding-right:calc(12px + env(safe-area-inset-right)) !important;padding-bottom:calc(40px + env(safe-area-inset-bottom)) !important;}
+    .tp-modal-overlay{align-items:flex-end;padding:0 !important;}
+    .tp-modal{max-width:none !important;border-radius:20px 20px 0 0 !important;padding:22px 18px calc(22px + env(safe-area-inset-bottom)) !important;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .tp-modal button{min-height:46px;}
+  }
+  @media (max-width:400px){
+    .tp-timer{gap:6px !important;padding:8px 8px !important;}
+    .tp-tripbar button{padding-left:14px !important;padding-right:14px !important;font-size:12.5px !important;}
+  }
+  @media (max-width:720px){
+    .tp-header{flex-direction:column;align-items:stretch !important;padding:14px 16px !important;}
+    .tp-nav{width:100%;overflow-x:auto;justify-content:flex-start !important;padding-bottom:2px;}
+    .tp-nav::-webkit-scrollbar{display:none}
+    .tp-navbtn{white-space:nowrap;flex-shrink:0;}
+    .tp-main{padding:16px 12px 40px !important;}
+    .tp-daycard{padding:16px 14px !important;}
+    .tp-item-row{flex-wrap:wrap !important;}
+    .tp-item-icon{order:-1;margin-bottom:6px;}
+    .tp-toprow-actions{width:100%;}
+    .tp-toprow-actions button{flex:1;}
+  }
+</style>
+</helmet>
+<div dir="rtl" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;min-height:100dvh;background:#F3F5FA;color:#1B2559;overflow-x:hidden;">
+
+  <header class="tp-header" style="background:linear-gradient(135deg,#1B2559 0%,#232E6B 100%);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          <h1 style="margin:0;font-size:22px;font-weight:800;color:#fff;">{{ tripName }}</h1>
+          <span style="background:#2F5FE0;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;">{{ tripYear }}</span>
+        </div>
+        <div style="color:#AEB8E8;font-size:13px;margin-top:4px;">{{ tripDatesLabel }} • מסלול טיול אינטראקטיבי, תקציב וצ'ק-ליסט</div>
+      </div>
+    </div>
+    <div class="tp-tripbar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select class="tp-tripselect" value="{{ currentTripId }}" onChange="{{ onTripChange }}" style="background:rgba(255,255,255,0.1);border:1px solid rgba(174,184,232,0.35);color:#fff;font-size:13px;font-weight:700;padding:9px 12px;border-radius:11px;cursor:pointer;font-family:inherit;max-width:200px;">
+        <sc-for list="{{ tripOptions }}" as="t" hint-placeholder-count="2">
+          <option value="{{ t.id }}" style="color:#1B2559;">{{ t.name }}</option>
+        </sc-for>
+      </select>
+      <button style="{{ saveBtnStyle }}" onClick="{{ doSaveTrip }}">{{ saveLabel }}</button>
+      <button style="background:transparent;border:1px solid rgba(174,184,232,0.45);color:#DCE3FF;padding:9px 16px;border-radius:11px;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.4px;" style-hover="background:rgba(255,255,255,0.12);" onClick="{{ openNewTrip }}">+ NEW</button>
+    </div>
+    <div class="tp-timer" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(174,184,232,0.28);border-radius:12px;padding:6px 12px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#AEB8E8" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <sc-if value="{{ countdownActive }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="text-align:center;min-width:30px;"><div style="color:#fff;font-size:14px;font-weight:800;line-height:1.1;">{{ cdDays }}</div><div style="color:#8B96CC;font-size:9px;font-weight:600;">ימים</div></div>
+              <span style="color:#4A5691;font-size:12px;">:</span>
+              <div style="text-align:center;min-width:26px;"><div style="color:#fff;font-size:14px;font-weight:800;line-height:1.1;">{{ cdHours }}</div><div style="color:#8B96CC;font-size:9px;font-weight:600;">שעות</div></div>
+              <span style="color:#4A5691;font-size:12px;">:</span>
+              <div style="text-align:center;min-width:26px;"><div style="color:#fff;font-size:14px;font-weight:800;line-height:1.1;">{{ cdMins }}</div><div style="color:#8B96CC;font-size:9px;font-weight:600;">דקות</div></div>
+              <span style="color:#4A5691;font-size:12px;">:</span>
+              <div style="text-align:center;min-width:26px;"><div style="color:#fff;font-size:14px;font-weight:800;line-height:1.1;">{{ cdSecs }}</div><div style="color:#8B96CC;font-size:9px;font-weight:600;">שניות</div></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ countdownDone }}" hint-placeholder-val="{{ false }}">
+            <div style="color:#fff;font-size:13px;font-weight:700;">{{ countdownDoneLabel }}</div>
+          </sc-if>
+        </div>
+    </div>
+    <div class="tp-nav" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="tp-navbtn" style="{{ tabTodoStyle }}" onClick="{{ setTabTodo }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l2.5 2.5L16 9"/></svg>
+        צ'ק-ליסט
+      </button>
+<button class="tp-navbtn" style="{{ tabBudgetStyle }}" onClick="{{ setTabBudget }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="15" cy="14.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+        תקציב והוצאות
+      </button>
+<button class="tp-navbtn" style="{{ tabItinStyle }}" onClick="{{ setTabItinerary }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        מסלול יומי
+      </button>
+      <button style="background:#2F5FE0;border:none;color:#fff;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onClick="{{ printTrip }}" title="הדפסה / שיתוף">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <sc-if value="{{ newTripOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="tp-modal-overlay" style="position:fixed;inset:0;background:rgba(27,37,89,0.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;">
+      <div class="tp-modal" style="background:#fff;border-radius:20px;padding:26px;width:100%;max-width:440px;box-shadow:0 18px 50px rgba(27,37,89,0.28);">
+        <h2 style="margin:0 0 4px;font-size:19px;font-weight:800;">טיול חדש</h2>
+        <p style="margin:0 0 20px;color:#697089;font-size:13px;">הזן את פרטי הטיול. המסלול, ההוצאות והצ'ק-ליסט יתחילו ריקים.</p>
+        <div style="display:grid;gap:14px;">
+          <label style="display:grid;gap:6px;font-size:12px;font-weight:700;color:#4A5691;">שם הטיול
+            <input value="{{ ntName }}" onChange="{{ setNtName }}" onKeyDown="{{ ntKeyDown }}" placeholder="לדוגמה: טיול פריז" style="border:1.5px solid #DDE3F0;border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1B2559;" />
+          </label>
+          <label style="display:grid;gap:6px;font-size:12px;font-weight:700;color:#4A5691;">תאריך יציאה
+            <input type="date" value="{{ ntStart }}" onChange="{{ setNtStart }}" onKeyDown="{{ ntKeyDown }}" style="border:1.5px solid #DDE3F0;border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1B2559;" />
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <label style="display:grid;gap:6px;font-size:12px;font-weight:700;color:#4A5691;">מספר ימים
+              <input type="number" min="1" max="30" value="{{ ntDays }}" onChange="{{ setNtDays }}" onKeyDown="{{ ntKeyDown }}" style="border:1.5px solid #DDE3F0;border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1B2559;" />
+            </label>
+            <label style="display:grid;gap:6px;font-size:12px;font-weight:700;color:#4A5691;">תקציב
+              <input type="number" min="0" value="{{ ntBudget }}" onChange="{{ setNtBudget }}" onKeyDown="{{ ntKeyDown }}" style="border:1.5px solid #DDE3F0;border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1B2559;" />
+            </label>
+          </div>
+        </div>
+        <sc-if value="{{ hasNewTripError }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:12px;color:#D14343;font-size:12.5px;font-weight:700;">{{ newTripError }}</div>
+        </sc-if>
+        <div style="display:flex;gap:10px;margin-top:22px;">
+          <button onClick="{{ confirmNewTrip }}" style="flex:1;background:#2F5FE0;border:none;color:#fff;padding:12px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">צור טיול</button>
+          <button onClick="{{ cancelNewTrip }}" style="background:#F1F3FA;border:none;color:#4A5691;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">ביטול</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <main class="tp-main" style="max-width:1180px;margin:0 auto;padding:24px 20px 60px;">
+
+    <sc-if value="{{ isItinerary }}" hint-placeholder-val="{{ true }}">
+    <section>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0 0 4px;font-size:20px;font-weight:800;">לוח זמנים ומסלול טיול יומי</h2>
+          <p style="margin:0;color:#697089;font-size:14px;max-width:560px;">תכנון יומי מפורט: אתרים, אטרקציות, סיורים ומקומות לארוחות. ניתן להוסיף, לערוך ולמחוק פרטים.</p>
+        </div>
+        <div class="tp-toprow-actions" style="display:flex;gap:10px;">
+          <button style="background:#EDF0FA;color:#1B2559;border:none;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;" onClick="{{ resetOriginal }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            שחזור לגרסה שנשמרה
+          </button>
+          <button style="background:#2F5FE0;color:#fff;border:none;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;" onClick="{{ openAddItem }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            הוספת פעילות חדשה
+          </button>
+        </div>
+      </div>
+
+      <div class="tp-daypills" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;">
+        <sc-for list="{{ dayPills }}" as="pill" hint-placeholder-count="7">
+          <button style="{{ pill.style }}" onClick="{{ pill.onClick }}">{{ pill.label }}</button>
+        </sc-for>
+      </div>
+
+      <div class="tp-daycard" style="background:#fff;border-radius:20px;padding:22px 24px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div style="color:#8892B0;font-size:12px;font-weight:600;">{{ currentDay.date }} • {{ currentDay.weekday }}</div>
+            <h3 style="margin:6px 0 0;font-size:19px;font-weight:800;">{{ currentDay.title }}</h3>
+          </div>
+          <button style="background:#EDF0FA;color:#2F5FE0;border:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;" onClick="{{ openAddItem }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            הוסף פריט ליום זה
+          </button>
+        </div>
+
+        <sc-if value="{{ addingItem }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1.5px dashed #C6D0F5;border-radius:14px;padding:16px;margin-bottom:14px;background:#F8F9FF;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+              <input placeholder="שעה (לדוגמה 14:00)" value="{{ draftTime }}" onChange="{{ onChangeDraftTime }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+              <select value="{{ draftCategory }}" onChange="{{ onChangeDraftCategory }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;">
+                <option value="transport">תחבורה</option>
+                <option value="lodging">לינה</option>
+                <option value="activity">אטרקציה / פעילות</option>
+                <option value="food">אוכל / מסעדה</option>
+              </select>
+              <input placeholder="מחיר (אופציונלי, £)" value="{{ draftPrice }}" onChange="{{ onChangeDraftPrice }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+            </div>
+            <input placeholder="כותרת" value="{{ draftTitle }}" onChange="{{ onChangeDraftTitle }}" onKeyDown="{{ onDraftKeyDown }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;margin-bottom:10px;"></input>
+            <textarea placeholder="תיאור קצר" value="{{ draftDesc }}" onChange="{{ onChangeDraftDesc }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;min-height:56px;resize:vertical;margin-bottom:10px;"></textarea>
+            <sc-if value="{{ draftError }}" hint-placeholder-val="{{ false }}">
+              <div style="color:#D64545;font-size:12px;font-weight:600;margin-bottom:10px;">יש להזין כותרת לפעילות.</div>
+            </sc-if>
+            <div style="display:flex;gap:8px;">
+              <button style="background:#2F5FE0;color:#fff;border:none;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;" onClick="{{ saveAdd }}">שמירה</button>
+              <button style="background:#fff;color:#697089;border:1px solid #DADFF0;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;" onClick="{{ cancelAdd }}">ביטול</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ currentDay.items }}" as="item" hint-placeholder-count="4">
+          <div style="border:1px solid #EEF0F8;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <sc-if value="{{ item.isEditing }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+                  <input value="{{ item.editTime }}" onChange="{{ item.onChangeEditTime }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+                  <select value="{{ item.editCategory }}" onChange="{{ item.onChangeEditCategory }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;">
+                    <option value="transport">תחבורה</option>
+                    <option value="lodging">לינה</option>
+                    <option value="activity">אטרקציה / פעילות</option>
+                    <option value="food">אוכל / מסעדה</option>
+                  </select>
+                  <input value="{{ item.editPrice }}" onChange="{{ item.onChangeEditPrice }}" placeholder="מחיר £" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+                </div>
+                <input value="{{ item.editTitle }}" onChange="{{ item.onChangeEditTitle }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;margin-bottom:10px;"></input>
+                <textarea value="{{ item.editDesc }}" onChange="{{ item.onChangeEditDesc }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;min-height:56px;resize:vertical;margin-bottom:10px;"></textarea>
+                <div style="display:flex;gap:8px;">
+                  <button style="background:#2F5FE0;color:#fff;border:none;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;" onClick="{{ item.saveEdit }}">שמירה</button>
+                  <button style="background:#fff;color:#697089;border:1px solid #DADFF0;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;" onClick="{{ cancelEdit }}">ביטול</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ item.isDisplay }}" hint-placeholder-val="{{ true }}">
+              <div class="tp-item-row" style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="display:flex;gap:6px;padding-top:2px;">
+                  <button style="background:none;border:none;color:#B5BCD6;cursor:pointer;padding:2px;" onClick="{{ item.remove }}" title="מחיקה">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+                  </button>
+                  <button style="background:none;border:none;color:#B5BCD6;cursor:pointer;padding:2px;" onClick="{{ item.startEdit }}" title="עריכה">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                  </button>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                    <span style="color:#8892B0;font-size:12px;">{{ item.time }}</span>
+                    <span style="background:#F1F3FA;color:#697089;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;">{{ item.tagLabel }}</span>
+                  </div>
+                  <div style="font-weight:700;font-size:15px;margin-bottom:2px;">{{ item.title }}</div>
+                  <div style="color:#697089;font-size:13px;line-height:1.5;">{{ item.desc }}</div>
+                  <sc-if value="{{ item.showPriceTag }}" hint-placeholder-val="{{ false }}">
+                    <div style="color:#D64545;font-size:12px;font-weight:700;margin-top:6px;">{{ item.priceLabel }}</div>
+                  </sc-if>
+                </div>
+                <div class="tp-item-icon" style="{{ item.iconWrapStyle }}">
+                  <sc-if value="{{ item.icoTransport }}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="10" rx="2"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/><path d="M3 11h18"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ item.icoLodging }}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M7 10V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ item.icoActivity }}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6z"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ item.icoFood }}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v8a2 2 0 0 0 2 2v10"/><path d="M6 2v6M10 2v6"/><path d="M18 2c-2 0-3 2-3 5v3c0 1.5 1 2 2 2v10"/></svg>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    </sc-if>
+
+    <sc-if value="{{ isBudget }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <h2 style="margin:0 0 4px;font-size:20px;font-weight:800;">מעקב תקציב והוצאות</h2>
+      <p style="margin:0 0 18px;color:#697089;font-size:14px;">לוח בקרה פיננסי לניהול תקציב הטיול לפי קטגוריות.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
+        <div style="background:#1B2559;color:#fff;border-radius:16px;padding:18px 20px;">
+          <div style="font-size:12px;color:#AEB8E8;margin-bottom:6px;">תקציב כולל</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:22px;font-weight:800;">{{ currency }}</span>
+            <input value="{{ budgetTotalInput }}" onChange="{{ onChangeBudgetTotal }}" style="background:transparent;border:none;border-bottom:1px solid #4453A0;color:#fff;font-size:22px;font-weight:800;width:100px;"></input>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+          <div style="font-size:12px;color:#8892B0;margin-bottom:6px;">סה"כ הוצאות</div>
+          <div style="font-size:22px;font-weight:800;">{{ currency }}{{ totalSpentLabel }}</div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+          <div style="font-size:12px;color:#8892B0;margin-bottom:6px;">נותר בתקציב</div>
+          <div style="font-size:22px;font-weight:800;color:{{ remainingColor }};">{{ currency }}{{ remainingLabel }}</div>
+        </div>
+      </div>
+
+      <sc-if value="{{ overBudget }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FDECEC;border:1px solid #F3B9B9;color:#B23434;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:20px;">
+          חריגה מהתקציב הכולל בסך {{ currency }}{{ overBudgetAmountLabel }}
+        </div>
+      </sc-if>
+
+      <div style="background:#fff;border-radius:20px;padding:22px 24px;box-shadow:0 2px 14px rgba(27,37,89,0.06);margin-bottom:20px;">
+        <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;">פילוח הוצאות לפי קטגוריה</h3>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ budgetCategories }}" as="cat" hint-placeholder-count="4">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                <span style="font-weight:700;">{{ cat.label }}</span>
+                <span style="color:#8892B0;">{{ currency }}{{ cat.spentLabel }} / {{ currency }}{{ cat.targetLabel }}</span>
+              </div>
+              <div style="background:#EEF0F8;border-radius:999px;height:9px;overflow:hidden;">
+                <div style="{{ cat.barStyle }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:20px;padding:22px 24px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+        <h3 style="margin:0 0 14px;font-size:15px;font-weight:800;">הוספת הוצאה</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+          <select value="{{ expenseCategory }}" onChange="{{ onChangeExpenseCategory }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;">
+            <option value="food">אוכל</option>
+            <option value="transport">תחבורה</option>
+            <option value="activity">אטרקציות</option>
+            <option value="shopping">קניות</option>
+          </select>
+          <input placeholder="{{ amountPlaceholder }}" value="{{ expenseAmount }}" onChange="{{ onChangeExpenseAmount }}" onKeyDown="{{ onExpenseKeyDown }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+          <input placeholder="הערה (לדוגמה: לונדון איי)" value="{{ expenseNote }}" onChange="{{ onChangeExpenseNote }}" onKeyDown="{{ onExpenseKeyDown }}" style="padding:9px 12px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+          <button style="background:#2F5FE0;color:#fff;border:none;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;" onClick="{{ addExpense }}">הוספת הוצאה</button>
+        </div>
+        <sc-if value="{{ expenseError }}" hint-placeholder-val="{{ false }}">
+          <div style="color:#D64545;font-size:12px;font-weight:600;margin-top:-4px;margin-bottom:10px;">יש להזין סכום הוצאה תקין (גדול מ-0).</div>
+        </sc-if>
+
+        <div style="margin-top:14px;">
+          <sc-for list="{{ expenseList }}" as="exp" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid #F1F3FA;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button style="background:none;border:none;color:#B5BCD6;cursor:pointer;" onClick="{{ exp.remove }}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+                </button>
+                <span style="background:#F1F3FA;color:#697089;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;">{{ exp.categoryLabel }}</span>
+                <span style="font-size:13px;">{{ exp.note }}</span>
+              </div>
+              <span style="font-weight:700;font-size:13px;">{{ currency }}{{ exp.amountLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    </sc-if>
+
+    <sc-if value="{{ isTodo }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <h2 style="margin:0 0 4px;font-size:20px;font-weight:800;">רשימת משימות לטיול</h2>
+      <p style="margin:0 0 18px;color:#697089;font-size:14px;">צ'ק-ליסט לפני הנסיעה ובמהלך הטיול.</p>
+
+      <div style="background:#fff;border-radius:20px;padding:22px 24px;box-shadow:0 2px 14px rgba(27,37,89,0.06);margin-bottom:18px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button style="{{ phaseBeforeStyle }}" onClick="{{ setPhaseBefore }}">לפני הנסיעה</button>
+          <button style="{{ phaseDuringStyle }}" onClick="{{ setPhaseDuring }}">במהלך הטיול</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input placeholder="משימה חדשה..." value="{{ newTodoText }}" onChange="{{ onChangeNewTodoText }}" onKeyDown="{{ onTodoKeyDown }}" style="flex:1;min-width:200px;padding:10px 14px;border-radius:9px;border:1px solid #DADFF0;font-size:13px;"></input>
+          <button style="background:#2F5FE0;color:#fff;border:none;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;" onClick="{{ addTodo }}">הוספה</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
+        <div style="background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+          <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;">לפני הנסיעה</h3>
+          <div style="color:#8892B0;font-size:12px;margin-bottom:12px;">{{ beforeDoneLabel }}</div>
+          <sc-for list="{{ todoBeforeList }}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F1F3FA;">
+              <button style="{{ t.checkStyle }}" onClick="{{ t.toggle }}">
+                <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                </sc-if>
+              </button>
+              <span style="{{ t.textStyle }}">{{ t.text }}</span>
+              <button style="background:none;border:none;color:#D8DCEC;cursor:pointer;margin-right:auto;" onClick="{{ t.remove }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 2px 14px rgba(27,37,89,0.06);">
+          <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;">במהלך הטיול</h3>
+          <div style="color:#8892B0;font-size:12px;margin-bottom:12px;">{{ duringDoneLabel }}</div>
+          <sc-for list="{{ todoDuringList }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F1F3FA;">
+              <button style="{{ t.checkStyle }}" onClick="{{ t.toggle }}">
+                <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                </sc-if>
+              </button>
+              <span style="{{ t.textStyle }}">{{ t.text }}</span>
+              <button style="background:none;border:none;color:#D8DCEC;cursor:pointer;margin-right:auto;" onClick="{{ t.remove }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    </sc-if>
+
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900},&quot;defaultTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;itinerary&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;itinerary&quot;,&quot;budget&quot;,&quot;todo&quot;],&quot;section&quot;:&quot;התנהגות&quot;},&quot;tripStartDate&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2027-07-24T08:00&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;התנהגות&quot;},&quot;currencySymbol&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;£&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;התנהגות&quot;},&quot;showPrices&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;התנהגות&quot;}}">
+const CATEGORY_LABELS = { transport: 'תחבורה', lodging: 'לינה', activity: 'אטרקציה', food: 'אוכל' };
+const BUDGET_CATEGORY_LABELS = { food: 'אוכל', transport: 'תחבורה', activity: 'אטרקציות', shopping: 'קניות' };
+const BUDGET_CATEGORY_PCT = { food: 0.3, transport: 0.15, activity: 0.4, shopping: 0.15 };
+const ICON_BG = {
+  transport: { bg: '#E7EEFF', color: '#2F5FE0' },
+  lodging: { bg: '#F1EAFB', color: '#8B5CF6' },
+  activity: { bg: '#FEF3DC', color: '#E0A324' },
+  food: { bg: '#E4F7EF', color: '#10A05F' }
+};
+
+const INITIAL_DAYS = [
+  { date: '24/7', weekday: 'יום שישי', title: 'נחיתה, סוהו, פיקדילי ואלאדין', items: [
+    { time: '13:35', category: 'transport', title: 'נחיתה ונסיעה למלון', desc: 'נחיתה בשדה התעופה ומעבר לכיוון המלון NOVOTEL LONDON BLACKFRIARS.', price: '' },
+    { time: 'אחה"צ', category: 'lodging', title: 'קבלת חדרים במלון Novotel London Blackfriars', desc: 'התארגנות מהירה בחדרים ויציאה לעיר.', price: '' },
+    { time: 'אחה"צ', category: 'activity', title: 'רחוב Regent וכיכר פיקדילי (Piccadilly)', desc: 'צעדה על רחוב Regent היפייפה עד לכיכר פיקדילי, כולל עצירה בחנות של M&M.', price: '' },
+    { time: 'אחה"צ', category: 'activity', title: 'סמטאות הסוהו ו-Carnaby Street', desc: 'סיבוב בסמטאות הסוהו עם דגש על Carnaby Street וחיפוש פינת Neal\'s Yard Square.', price: '' },
+    { time: 'צהריים', category: 'food', title: 'ארוחת צהריים באיטלקית Princi', desc: 'איטלקיה מהירה אך מהודקת עם אחלה אוכל.', price: '45' },
+    { time: 'אחה"צ', category: 'food', title: 'הפסקת תה בבית תה מקומי', desc: 'תה בטעמים בכלי פורצלן ועוגות פלצניות.', price: '' },
+    { time: 'ערב', category: 'activity', title: 'קובנט גארדן (Covent Garden)', desc: 'התרגעות עם קפה קטן בשמש בזמן שהנוער מסתובב בסביבה.', price: '15' },
+    { time: 'ערב', category: 'activity', title: 'לונדון איי (London Eye) ותצפית', desc: 'תצפית שמסתובבת באיטיות מעל העיר. כדאי להזמין כרטיסים מראש ובמחיר טוב יותר.', price: '27' },
+    { time: 'ערב', category: 'activity', title: 'סיור ליד ביג בן', desc: 'הליכה לביג בן לצפייה מקרוב (כרגע בשיפוצים).', price: '' },
+    { time: 'ערב', category: 'activity', title: 'מופע אלאדין בווסט אנד', desc: 'מופע מרהיב במיוחד מבחינת במה, תפאורה ותלבושות. כדאי לחפש כרטיסים במושבים טובים.', price: '58' }
+  ]},
+  { date: '25/7', weekday: 'יום שבת', title: 'סיור בעברית ושופינג באוקספורד סטריט', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר במלון', desc: 'התארגנות ליום מלא ויציאה לסיור.', price: '' },
+    { time: 'בוקר', category: 'activity', title: 'סיור מודרך בעברית', desc: 'סיור קבוצתי בעברית של כ-3 שעות בעיר.', price: '' },
+    { time: 'צהריים', category: 'activity', title: 'שופינג ברחוב אוקספורד (Oxford Street)', desc: 'שיטוט וקניות לאורך אחד מרחובות הקניות המרכזיים בעיר.', price: '' },
+    { time: 'ערב', category: 'food', title: 'ארוחת ערב במסעדת Jamie\'s Italian', desc: 'מסעדה של השף ג\'יימי אוליבר, מחירים הוגנים ואוכל טעים.', price: '' }
+  ]},
+  { date: '26/7', weekday: 'יום ראשון', title: 'דנג\'ן של לונדון, סוהו וצ\'יינה טאון', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר במלון', desc: 'התארגנות ליום בעיר.', price: '' },
+    { time: 'בוקר', category: 'activity', title: 'The London Dungeon', desc: 'אטרקציה מסע חווייתית דרך ההיסטוריה האפלה של לונדון.', price: '' },
+    { time: 'צהריים', category: 'activity', title: 'סיבוב באיזור סוהו (Soho)', desc: 'שיטוט חופשי ברחובות הסוהו התוססים.', price: '' },
+    { time: 'ערב', category: 'food', title: 'ארוחת ערב בצ\'יינה טאון', desc: 'ארוחה באזור צ\'יינה טאון הצבעוני.', price: '' }
+  ]},
+  { date: '27/7', weekday: 'יום שני', title: 'קובנט גארדן, לונדון איי ושייט בגריניץ\'', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר במלון', desc: 'התארגנות ליום מלא.', price: '' },
+    { time: 'בוקר', category: 'activity', title: 'קובנט גארדן (Covent Garden)', desc: 'שיטוט בשוק ובאזור התוסס של קובנט גארדן.', price: '' },
+    { time: 'צהריים', category: 'activity', title: 'לונדון איי ושייט מרציף London Eye Pier', desc: 'שייט לכיוון גריניץ\' לאורך התמזה.', price: '' },
+    { time: 'ערב', category: 'activity', title: 'סיור בגריניץ\'', desc: 'מצפה הכוכבים המלכותי וסיבוב בספינה ההיסטורית Cutty Sark.', price: '' }
+  ]},
+  { date: '28/7', weekday: 'יום שלישי', title: 'שוק קמדן וקניון ווסטפילד', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר במלון', desc: 'התארגנות ליום קניות ושווקים.', price: '' },
+    { time: 'בוקר', category: 'activity', title: 'שוק קמדן (Camden Market)', desc: 'שוטטות בשווקי הרחוב, המכורה והשוק התת-קרקעי, ומלא משאיות אוכל.', price: '' },
+    { time: 'צהריים', category: 'activity', title: 'שופינג בקניון ווסטפילד (Westfield)', desc: 'קניון קניות ענק עם מגוון רחב של חנויות.', price: '' },
+    { time: 'ערב', category: 'food', title: 'ארוחת ערב באזור הקניון', desc: 'ארוחה נינוחה לסיום יום הקניות.', price: '' }
+  ]},
+  { date: '29/7', weekday: 'יום רביעי', title: 'נוטינג היל, סקיי גארדן ומלך האריות', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר בשכונת נוטינג היל', desc: 'ארוחת בוקר וקניות בשכונה הציורית נוטינג היל.', price: '' },
+    { time: '15:45', category: 'activity', title: 'סקיי גארדן (Sky Garden)', desc: 'תצפית פנורמית מרהיבה על העיר מגובה.', price: '' },
+    { time: '19:30', category: 'activity', title: 'מופע מלך האריות (The Lion King)', desc: 'מופע ווסט אנד מרהיב עם תפאורה ותלבושות מרשימות.', price: '' }
+  ]},
+  { date: '30/7', weekday: 'יום חמישי', title: 'מוזיאון המדע, פארק וטיסה חזרה', items: [
+    { time: 'בוקר', category: 'food', title: 'ארוחת בוקר במלון', desc: 'ארוחת בוקר אחרונה לפני יום היציאה.', price: '' },
+    { time: 'בוקר', category: 'activity', title: 'מוזיאון המדע (Science Museum)', desc: 'מוזיאון אינטראקטיבי ומהנה לכל המשפחה.', price: '' },
+    { time: 'צהריים', category: 'activity', title: 'ריג\'נט פארק או הייד פארק', desc: 'זמן חופשי ומנוחה באחד מהפארקים הגדולים של לונדון.', price: '' },
+    { time: 'אחה"צ', category: 'food', title: 'קניות אחרונות בסופרמרקט', desc: 'קניות אחרונות של מתנות וממתקים לפני החזרה.', price: '' },
+    { time: '19:00', category: 'transport', title: 'יציאה לשדה התעופה', desc: 'זמן הגעה מומלץ לפני הטיסה.', price: '' },
+    { time: '22:00', category: 'transport', title: 'טיסה חזרה', desc: 'המראה חזרה הביתה.', price: '' }
+  ]}
+];
+
+const INITIAL_EXPENSES = [
+  { category: 'activity', amount: '27', note: 'כרטיסי לונדון איי' },
+  { category: 'activity', amount: '58', note: 'כרטיסי מופע אלאדין' },
+  { category: 'food', amount: '45', note: 'ארוחת צהריים Princi' },
+  { category: 'activity', amount: '19.90', note: 'מאדאם טוסו' }
+];
+
+const INITIAL_TODO_BEFORE = [
+  { text: 'הזמנת כרטיסים מראש (מופעים ואטרקציות)', done: true },
+  { text: 'המרת מט"ח', done: false },
+  { text: 'ביטוח נסיעות', done: false },
+  { text: 'אריזה', done: false },
+  { text: 'הורדת אפליקציית Citymapper / Tube Map', done: false }
+];
+const INITIAL_TODO_DURING = [
+  { text: 'טעינת כרטיס Oyster / כרטיס אשראי לתחבורה', done: false },
+  { text: 'שמירת צילום דרכון בענן', done: false },
+  { text: 'בדיקת מזג אוויר יומית ולבוש מתאים', done: false }
+];
+
+let uid = 1;
+function nextId() { return uid++; }
+
+function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+function seedDays() {
+  return INITIAL_DAYS.map(d => ({ ...clone(d), items: d.items.map(it => ({ ...it, id: nextId() })) }));
+}
+function seedExpenses() { return INITIAL_EXPENSES.map(e => ({ ...e, id: nextId() })); }
+function seedTodo(list) { return list.map(t => ({ ...t, id: nextId() })); }
+
+const TRIPS_KEY = 'tp-trips-v2';
+const HE_WEEKDAYS = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'יום שבת'];
+
+function blankDays(startStr, count) {
+  const start = new Date(startStr);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(start.getTime() + i * 86400000);
+    out.push({ date: `${d.getDate()}/${d.getMonth() + 1}`, weekday: HE_WEEKDAYS[d.getDay()], title: '', items: [] });
+  }
+  return out;
+}
+
+class Component extends DCLogic {
+  state = {
+    trips: [],
+    currentTripId: 'london',
+    tripName: 'טיול לונדון',
+    tripStart: '2027-07-24T08:00',
+    justSaved: false,
+    newTripOpen: false,
+    newTripDraft: { name: '', start: '', days: '7', budget: '3000' },
+    newTripError: '',
+    activeTab: this.props.defaultTab || 'itinerary',
+    activeDayIdx: 0,
+    days: seedDays(),
+    addingItem: false,
+    draft: { time: '', category: 'activity', title: '', desc: '', price: '' },
+    editingItemId: null,
+    editDraft: null,
+    draftError: false,
+    budgetTotal: '3000',
+    expenses: seedExpenses(),
+    expenseDraft: { category: 'food', amount: '', note: '' },
+    expenseError: false,
+    todoBefore: seedTodo(INITIAL_TODO_BEFORE),
+    todoDuring: seedTodo(INITIAL_TODO_DURING),
+    newTodoText: '',
+    todoPhase: 'before',
+    now: Date.now()
+  };
+
+  componentDidMount() {
+    this._tick = setInterval(() => this.setState({ now: Date.now() }), 1000);
+    let store = null;
+    try { store = JSON.parse(localStorage.getItem(TRIPS_KEY) || 'null'); } catch (e) { store = null; }
+    const seedStart = this.props.tripStartDate || '2027-07-24T08:00';
+    if (store && Array.isArray(store.trips) && store.trips.length) {
+      const active = store.trips.find(t => t.id === store.currentTripId) || store.trips[0];
+      this.setState({ trips: store.trips, ...this.tripToState(active) });
+    } else {
+      const london = { ...this.collectTrip(), id: 'london', name: 'טיול לונדון', startDate: seedStart };
+      this.setState({ trips: [london], currentTripId: 'london', tripName: 'טיול לונדון', tripStart: seedStart },
+        () => this.persist());
+    }
+  }
+  componentWillUnmount() { clearInterval(this._tick); }
+
+  collectTrip() {
+    const s = this.state;
+    return {
+      id: s.currentTripId, name: s.tripName, startDate: s.tripStart,
+      days: clone(s.days), budgetTotal: s.budgetTotal, expenses: clone(s.expenses),
+      todoBefore: clone(s.todoBefore), todoDuring: clone(s.todoDuring)
+    };
+  }
+  tripToState(t) {
+    return {
+      currentTripId: t.id, tripName: t.name, tripStart: t.startDate,
+      days: clone(t.days), budgetTotal: t.budgetTotal, expenses: clone(t.expenses),
+      todoBefore: clone(t.todoBefore), todoDuring: clone(t.todoDuring),
+      activeDayIdx: 0, addingItem: false, editingItemId: null, editDraft: null
+    };
+  }
+  persist(trips, currentId) {
+    const payload = { trips: trips || this.state.trips, currentTripId: currentId || this.state.currentTripId };
+    try { localStorage.setItem(TRIPS_KEY, JSON.stringify(payload)); } catch (e) {}
+  }
+  saveTrip() {
+    const cur = this.collectTrip();
+    const trips = this.state.trips.some(t => t.id === cur.id)
+      ? this.state.trips.map(t => (t.id === cur.id ? cur : t))
+      : [...this.state.trips, cur];
+    this.setState({ trips, justSaved: true }, () => this.persist(trips, cur.id));
+    clearTimeout(this._flash);
+    this._flash = setTimeout(() => this.setState({ justSaved: false }), 1800);
+  }
+  switchTrip(id) {
+    if (id === this.state.currentTripId) return;
+    const cur = this.collectTrip();
+    const trips = this.state.trips.map(t => (t.id === cur.id ? cur : t));
+    const target = trips.find(t => t.id === id);
+    if (!target) return;
+    this.setState({ trips, ...this.tripToState(target) }, () => this.persist(trips, id));
+  }
+  openNewTrip() {
+    this.setState({ newTripOpen: true, newTripError: '', newTripDraft: { name: '', start: '', days: '7', budget: '3000' } });
+  }
+  createTrip() {
+    const d = this.state.newTripDraft;
+    if (!d.name.trim()) { this.setState({ newTripError: 'יש להזין שם לטיול' }); return; }
+    if (!d.start || isNaN(new Date(d.start).getTime())) { this.setState({ newTripError: 'יש לבחור תאריך יציאה' }); return; }
+    const count = Math.max(1, Math.min(30, parseInt(d.days, 10) || 1));
+    const cur = this.collectTrip();
+    const kept = this.state.trips.some(t => t.id === cur.id)
+      ? this.state.trips.map(t => (t.id === cur.id ? cur : t))
+      : [...this.state.trips, cur];
+    const startDate = d.start.length <= 10 ? `${d.start}T08:00` : d.start;
+    const fresh = {
+      id: 'trip-' + Date.now(), name: d.name.trim(), startDate,
+      days: blankDays(startDate, count), budgetTotal: d.budget || '0',
+      expenses: [], todoBefore: [], todoDuring: []
+    };
+    const trips = [...kept, fresh];
+    this.setState({ trips, newTripOpen: false, newTripError: '', activeTab: 'itinerary', ...this.tripToState(fresh) },
+      () => this.persist(trips, fresh.id));
+  }
+
+  setTab(tab) { this.setState({ activeTab: tab, addingItem: false, editingItemId: null }); }
+
+  openAddItem() { this.setState({ addingItem: true, draft: { time: '', category: 'activity', title: '', desc: '', price: '' } }); }
+  cancelAdd() { this.setState({ addingItem: false }); }
+  saveAdd() {
+    const { draft, days, activeDayIdx } = this.state;
+    if (!draft.title.trim()) { this.setState({ draftError: true }); return; }
+    const newDays = clone(days);
+    newDays[activeDayIdx].items.push({ id: nextId(), time: draft.time || '—', category: draft.category, title: draft.title, desc: draft.desc, price: draft.price });
+    this.setState({ days: newDays, addingItem: false, draftError: false });
+  }
+  onDraftKeyDown(e) { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); this.saveAdd(); } }
+
+  startEdit(item) {
+    this.setState({ editingItemId: item.id, editDraft: { time: item.time, category: item.category, title: item.title, desc: item.desc, price: item.price } });
+  }
+  cancelEdit() { this.setState({ editingItemId: null, editDraft: null }); }
+  saveEdit(itemId) {
+    const { days, activeDayIdx, editDraft } = this.state;
+    const newDays = clone(days);
+    const items = newDays[activeDayIdx].items;
+    const idx = items.findIndex(i => i.id === itemId);
+    if (idx !== -1) items[idx] = { ...items[idx], ...editDraft };
+    this.setState({ days: newDays, editingItemId: null, editDraft: null });
+  }
+  removeItem(itemId) {
+    const { days, activeDayIdx } = this.state;
+    const newDays = clone(days);
+    newDays[activeDayIdx].items = newDays[activeDayIdx].items.filter(i => i.id !== itemId);
+    this.setState({ days: newDays });
+  }
+
+  resetOriginal() {
+    const saved = this.state.trips.find(t => t.id === this.state.currentTripId);
+    const days = saved ? clone(saved.days) : (this.state.currentTripId === 'london' ? seedDays() : blankDays(this.state.tripStart, this.state.days.length || 1));
+    this.setState({ days, addingItem: false, editingItemId: null });
+  }
+
+  addExpense() {
+    const { expenseDraft, expenses } = this.state;
+    const amt = parseFloat(expenseDraft.amount);
+    if (!amt || amt <= 0) { this.setState({ expenseError: true }); return; }
+    this.setState({ expenses: [...expenses, { id: nextId(), category: expenseDraft.category, amount: expenseDraft.amount, note: expenseDraft.note || BUDGET_CATEGORY_LABELS[expenseDraft.category] }], expenseDraft: { category: 'food', amount: '', note: '' }, expenseError: false });
+  }
+  onExpenseKeyDown(e) { if (e.key === 'Enter') { e.preventDefault(); this.addExpense(); } }
+  onTodoKeyDown(e) { if (e.key === 'Enter') { e.preventDefault(); this.addTodo(); } }
+  removeExpense(id) { this.setState({ expenses: this.state.expenses.filter(e => e.id !== id) }); }
+
+  addTodo() {
+    const { newTodoText, todoPhase, todoBefore, todoDuring } = this.state;
+    if (!newTodoText.trim()) return;
+    if (todoPhase === 'before') this.setState({ todoBefore: [...todoBefore, { id: nextId(), text: newTodoText, done: false }], newTodoText: '' });
+    else this.setState({ todoDuring: [...todoDuring, { id: nextId(), text: newTodoText, done: false }], newTodoText: '' });
+  }
+  toggleTodo(phase, id) {
+    const key = phase === 'before' ? 'todoBefore' : 'todoDuring';
+    this.setState({ [key]: this.state[key].map(t => t.id === id ? { ...t, done: !t.done } : t) });
+  }
+  removeTodo(phase, id) {
+    const key = phase === 'before' ? 'todoBefore' : 'todoDuring';
+    this.setState({ [key]: this.state[key].filter(t => t.id !== id) });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const currency = this.props.currencySymbol || '£';
+    const showPrices = this.props.showPrices !== false;
+
+    const tabStyle = (active) => ({
+      background: active ? '#2F5FE0' : 'transparent',
+      color: active ? '#fff' : '#C7CEEF',
+      border: 'none', padding: '9px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+    });
+
+    const dayPills = s.days.map((d, idx) => ({
+      key: idx,
+      label: `${d.weekday} (${d.date})`,
+      onClick: () => this.setState({ activeDayIdx: idx, addingItem: false, editingItemId: null }),
+      style: {
+        background: idx === s.activeDayIdx ? '#2F5FE0' : '#F1F3FA',
+        color: idx === s.activeDayIdx ? '#fff' : '#4B5573',
+        border: 'none', padding: '10px 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 700,
+        cursor: 'pointer', whiteSpace: 'nowrap'
+      }
+    }));
+
+    const dayRaw = s.days[s.activeDayIdx];
+    const items = dayRaw.items.map(item => {
+      const isEditing = s.editingItemId === item.id;
+      const ed = isEditing ? s.editDraft : null;
+      return {
+        id: item.id,
+        isEditing, isDisplay: !isEditing,
+        time: item.time, tagLabel: CATEGORY_LABELS[item.category] || item.category,
+        title: item.title, desc: item.desc,
+        showPriceTag: showPrices && !!item.price,
+        priceLabel: `עלות משוערת: ${currency}${item.price}`,
+        icoTransport: item.category === 'transport', icoLodging: item.category === 'lodging',
+        icoActivity: item.category === 'activity', icoFood: item.category === 'food',
+        iconWrapStyle: { width: '38px', height: '38px', borderRadius: '11px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: (ICON_BG[item.category] || ICON_BG.activity).bg, color: (ICON_BG[item.category] || ICON_BG.activity).color },
+        startEdit: () => this.startEdit(item),
+        remove: () => this.removeItem(item.id),
+        saveEdit: () => this.saveEdit(item.id),
+        editTime: ed ? ed.time : '', editCategory: ed ? ed.category : 'activity', editTitle: ed ? ed.title : '', editDesc: ed ? ed.desc : '', editPrice: ed ? ed.price : '',
+        onChangeEditTime: (e) => this.setState({ editDraft: { ...s.editDraft, time: e.target.value } }),
+        onChangeEditCategory: (e) => this.setState({ editDraft: { ...s.editDraft, category: e.target.value } }),
+        onChangeEditTitle: (e) => this.setState({ editDraft: { ...s.editDraft, title: e.target.value } }),
+        onChangeEditDesc: (e) => this.setState({ editDraft: { ...s.editDraft, desc: e.target.value } }),
+        onChangeEditPrice: (e) => this.setState({ editDraft: { ...s.editDraft, price: e.target.value } })
+      };
+    });
+
+    const currentDay = { date: dayRaw.date, weekday: dayRaw.weekday, title: dayRaw.title, items };
+
+    const budgetTotal = parseFloat(s.budgetTotal) || 0;
+    const spentByCategory = {};
+    Object.keys(BUDGET_CATEGORY_LABELS).forEach(c => spentByCategory[c] = 0);
+    s.expenses.forEach(e => { spentByCategory[e.category] = (spentByCategory[e.category] || 0) + (parseFloat(e.amount) || 0); });
+    const totalSpent = Object.values(spentByCategory).reduce((a, b) => a + b, 0);
+    const remaining = budgetTotal - totalSpent;
+
+    const budgetCategories = Object.keys(BUDGET_CATEGORY_LABELS).map(cat => {
+      const target = budgetTotal * BUDGET_CATEGORY_PCT[cat];
+      const spent = spentByCategory[cat];
+      const pct = target > 0 ? Math.min(spent / target, 1) * 100 : 0;
+      const over = spent > target;
+      return {
+        key: cat, label: BUDGET_CATEGORY_LABELS[cat],
+        spentLabel: spent.toFixed(0), targetLabel: target.toFixed(0),
+        barStyle: { width: pct + '%', height: '100%', borderRadius: '999px', background: over ? '#E05656' : '#2F5FE0' }
+      };
+    });
+
+    const expenseList = s.expenses.map(e => ({
+      id: e.id, categoryLabel: BUDGET_CATEGORY_LABELS[e.category] || e.category, note: e.note,
+      amountLabel: parseFloat(e.amount).toFixed(0),
+      remove: () => this.removeExpense(e.id)
+    }));
+
+    const startStr = s.tripStart || this.props.tripStartDate || '2027-07-24T08:00';
+    const startDate = new Date(startStr);
+    const startMs = startDate.getTime();
+    const endDate = new Date(startMs + 6 * 86400000);
+    const endMs = startMs + 7 * 86400000;
+    const dmy = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
+    const diff = startMs - s.now;
+    const pad = (n) => String(n).padStart(2, '0');
+    const cd = diff > 0
+      ? { countdownActive: true, countdownDone: false, countdownDoneLabel: '',
+          cdDays: Math.floor(diff / 86400000),
+          cdHours: pad(Math.floor(diff / 3600000) % 24),
+          cdMins: pad(Math.floor(diff / 60000) % 60),
+          cdSecs: pad(Math.floor(diff / 1000) % 60) }
+      : { countdownActive: false, countdownDone: true, cdDays: 0, cdHours: '00', cdMins: '00', cdSecs: '00',
+          countdownDoneLabel: s.now < endMs ? 'הטיול בעיצומו! 🇬🇧' : 'הטיול הסתיים' };
+
+    const phaseStyle = (active) => ({
+      background: active ? '#EDF0FA' : 'transparent', color: active ? '#2F5FE0' : '#8892B0',
+      border: 'none', padding: '8px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer'
+    });
+
+    const mkTodo = (list, phase) => list.map(t => ({
+      id: t.id, done: t.done, text: t.text,
+      checkStyle: { width: '20px', height: '20px', borderRadius: '6px', border: t.done ? 'none' : '1.5px solid #C7CEE0', background: t.done ? '#2F5FE0' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 },
+      textStyle: { fontSize: '13px', color: t.done ? '#B5BCD6' : '#1B2559', textDecoration: t.done ? 'line-through' : 'none' },
+      toggle: () => this.toggleTodo(phase, t.id),
+      remove: () => this.removeTodo(phase, t.id)
+    }));
+
+    return {
+      tripName: s.tripName || 'טיול חדש',
+      tripOptions: (s.trips.length ? s.trips : [{ id: s.currentTripId, name: s.tripName }]).map(t => ({ id: t.id, name: t.name })),
+      currentTripId: s.currentTripId,
+      onTripChange: (e) => this.switchTrip(e.target.value),
+      doSaveTrip: () => this.saveTrip(),
+      saveLabel: s.justSaved ? 'נשמר ✓' : 'SAVE',
+      saveBtnStyle: {
+        background: s.justSaved ? '#10A05F' : '#2F5FE0', border: 'none', color: '#fff',
+        padding: '9px 16px', borderRadius: '11px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', letterSpacing: '.4px'
+      },
+      openNewTrip: () => this.openNewTrip(),
+      newTripOpen: s.newTripOpen,
+      newTripError: s.newTripError,
+      hasNewTripError: !!s.newTripError,
+      ntName: s.newTripDraft.name, ntStart: s.newTripDraft.start, ntDays: s.newTripDraft.days, ntBudget: s.newTripDraft.budget,
+      setNtName: (e) => this.setState({ newTripDraft: { ...s.newTripDraft, name: e.target.value } }),
+      setNtStart: (e) => this.setState({ newTripDraft: { ...s.newTripDraft, start: e.target.value } }),
+      setNtDays: (e) => this.setState({ newTripDraft: { ...s.newTripDraft, days: e.target.value } }),
+      setNtBudget: (e) => this.setState({ newTripDraft: { ...s.newTripDraft, budget: e.target.value } }),
+      confirmNewTrip: () => this.createTrip(),
+      cancelNewTrip: () => this.setState({ newTripOpen: false, newTripError: '' }),
+      ntKeyDown: (e) => { if (e.key === 'Enter') this.createTrip(); },
+      tripYear: String(startDate.getFullYear()),
+      tripDatesLabel: `${dmy(endDate)} - ${dmy(startDate)}`,
+      ...cd,
+      isItinerary: s.activeTab === 'itinerary', isBudget: s.activeTab === 'budget', isTodo: s.activeTab === 'todo',
+      setTabItinerary: () => this.setTab('itinerary'), setTabBudget: () => this.setTab('budget'), setTabTodo: () => this.setTab('todo'),
+      tabItinStyle: tabStyle(s.activeTab === 'itinerary'), tabBudgetStyle: tabStyle(s.activeTab === 'budget'), tabTodoStyle: tabStyle(s.activeTab === 'todo'),
+      printTrip: () => window.print(),
+      dayPills, currentDay,
+      resetOriginal: () => this.resetOriginal(),
+      openAddItem: () => this.openAddItem(), cancelAdd: () => this.cancelAdd(), saveAdd: () => this.saveAdd(),
+      addingItem: s.addingItem,
+      draftTime: s.draft.time, draftCategory: s.draft.category, draftTitle: s.draft.title, draftDesc: s.draft.desc, draftPrice: s.draft.price,
+      onChangeDraftTime: (e) => this.setState({ draft: { ...s.draft, time: e.target.value } }),
+      onChangeDraftCategory: (e) => this.setState({ draft: { ...s.draft, category: e.target.value } }),
+      onChangeDraftTitle: (e) => this.setState({ draft: { ...s.draft, title: e.target.value } }),
+      onChangeDraftDesc: (e) => this.setState({ draft: { ...s.draft, desc: e.target.value } }),
+      onChangeDraftPrice: (e) => this.setState({ draft: { ...s.draft, price: e.target.value } }),
+      onDraftKeyDown: (e) => this.onDraftKeyDown(e),
+      draftError: s.draftError,
+      cancelEdit: () => this.cancelEdit(),
+      currency, budgetTotalInput: s.budgetTotal,
+      onChangeBudgetTotal: (e) => this.setState({ budgetTotal: e.target.value }),
+      totalSpentLabel: totalSpent.toFixed(0), remainingLabel: Math.abs(remaining).toFixed(0),
+      remainingColor: remaining < 0 ? '#D64545' : '#10A05F',
+      overBudget: remaining < 0, overBudgetAmountLabel: Math.abs(remaining).toFixed(0),
+      budgetCategories, expenseList,
+      amountPlaceholder: `סכום (${currency})`,
+      expenseCategory: s.expenseDraft.category, expenseAmount: s.expenseDraft.amount, expenseNote: s.expenseDraft.note,
+      onChangeExpenseCategory: (e) => this.setState({ expenseDraft: { ...s.expenseDraft, category: e.target.value } }),
+      onChangeExpenseAmount: (e) => this.setState({ expenseDraft: { ...s.expenseDraft, amount: e.target.value } }),
+      onChangeExpenseNote: (e) => this.setState({ expenseDraft: { ...s.expenseDraft, note: e.target.value } }),
+      addExpense: () => this.addExpense(),
+      onExpenseKeyDown: (e) => this.onExpenseKeyDown(e),
+      expenseError: s.expenseError,
+      phaseBeforeStyle: phaseStyle(s.todoPhase === 'before'), phaseDuringStyle: phaseStyle(s.todoPhase === 'during'),
+      setPhaseBefore: () => this.setState({ todoPhase: 'before' }), setPhaseDuring: () => this.setState({ todoPhase: 'during' }),
+      newTodoText: s.newTodoText, onChangeNewTodoText: (e) => this.setState({ newTodoText: e.target.value }),
+      addTodo: () => this.addTodo(),
+      onTodoKeyDown: (e) => this.onTodoKeyDown(e),
+      beforeDoneLabel: `${s.todoBefore.filter(t => t.done).length} מתוך ${s.todoBefore.length} הושלמו`,
+      duringDoneLabel: `${s.todoDuring.filter(t => t.done).length} מתוך ${s.todoDuring.length} הושלמו`,
+      todoBeforeList: mkTodo(s.todoBefore, 'before'), todoDuringList: mkTodo(s.todoDuring, 'during')
+    };
+  }
+}
+
+</script>
+</body>
+</html>
