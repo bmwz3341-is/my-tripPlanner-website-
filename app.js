@@ -490,7 +490,7 @@ function renderHeader() {
     <div class="tp-headerrow1">
       <div class="tp-titleblock">
         <div>
-          <div class="tp-apptitle">תכנון הטיול הבא שלי</div>
+          <div class="tp-apptitle">מתכנן הטיול הבא שלי</div>
           <div class="tp-titlerow">
             ${state.editingTripInfo ? `
               <input id="tripNameEditInput" type="text" class="tp-editname-input" value="${esc(state.tripNameDraft)}" data-autofocus>
