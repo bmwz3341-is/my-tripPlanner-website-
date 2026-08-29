@@ -27,7 +27,8 @@ const ICO = {
   check: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>',
   navTodo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l2.5 2.5L16 9"/></svg>',
   navBudget: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="15" cy="14.5" r="1.5" fill="currentColor" stroke="none"/></svg>',
-  navItin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>'
+  navItin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  swap: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-4-4"/><path d="M17 17H4l4 4"/></svg>'
 };
 const ICON_PATHS = {
   transport: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="10" rx="2"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/><path d="M3 11h18"/></svg>',
@@ -118,6 +119,12 @@ function fmtNum(n) {
   if (!isFinite(n)) n = 0;
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
+/* some newly-added currencies (ARS, COP, PYG...) are worth a small fraction of a shekel/dollar —
+   fmtNum's flat 2-decimal cap would round 1 unit of them down to "0.00". */
+function fmtCurrencyResult(n) {
+  if (!isFinite(n)) n = 0;
+  return n !== 0 && Math.abs(n) < 1 ? n.toFixed(4) : fmtNum(n);
+}
 function emptyDraft() { return { time: '', category: 'activity', title: '', desc: '', price: '' }; }
 
 function seedDays() { return SEED_DAYS.map(d => ({ ...clone(d), items: d.items.map(it => ({ ...it, id: nextId() })) })); }
@@ -152,6 +159,16 @@ const state = {
   newTripOpen: false,
   newTripDraft: { name: '', start: '', days: '7', budget: '3000' },
   newTripError: '',
+  currencyModalOpen: false,
+  currencyFrom: 'GBP',
+  currencyTo: 'ILS',
+  currencyAmount: '1',
+  currencyResult: null,
+  currencyRate: null,
+  currencyDate: '',
+  currencyLoading: false,
+  currencyError: '',
+  currencyDropdownOpen: null,
 };
 
 function loadStore() {
@@ -276,6 +293,121 @@ function deleteExpense(id) {
   render();
 }
 
+/* ---- currency converter (open.er-api.com — free, no API key, ~160 currencies, updates daily) ---- */
+const CURRENCY_API = 'https://open.er-api.com/v6/latest';
+/* maps to flag-icons (cdn.jsdelivr.net/npm/flag-icons) two-letter country classes — Windows has no
+   color flag emoji glyphs, so flags are rendered as real SVG icons instead of Unicode emoji.
+   Curated list: existing majors + South America, the Gulf states, and Eastern Europe. */
+const CURRENCY_COUNTRY = {
+  AUD: 'au', BRL: 'br', CAD: 'ca', CHF: 'ch', CNY: 'cn', CZK: 'cz', DKK: 'dk', EUR: 'eu',
+  GBP: 'gb', HKD: 'hk', HUF: 'hu', IDR: 'id', ILS: 'il', INR: 'in', ISK: 'is', JPY: 'jp',
+  KRW: 'kr', MXN: 'mx', MYR: 'my', NOK: 'no', NZD: 'nz', PHP: 'ph', PLN: 'pl', RON: 'ro',
+  SEK: 'se', SGD: 'sg', THB: 'th', TRY: 'tr', USD: 'us', ZAR: 'za',
+  // South America
+  ARS: 'ar', CLP: 'cl', COP: 'co', PEN: 'pe', UYU: 'uy', BOB: 'bo', PYG: 'py',
+  // Persian Gulf
+  AED: 'ae', SAR: 'sa', QAR: 'qa', KWD: 'kw', BHD: 'bh', OMR: 'om',
+  // Eastern Europe
+  BGN: 'bg', RSD: 'rs', UAH: 'ua', ALL: 'al', BAM: 'ba', MKD: 'mk', RUB: 'ru'
+};
+const CURRENCY_NAMES = {
+  AUD: 'Australian Dollar', BRL: 'Brazilian Real', CAD: 'Canadian Dollar', CHF: 'Swiss Franc',
+  CNY: 'Chinese Yuan', CZK: 'Czech Koruna', DKK: 'Danish Krone', EUR: 'Euro', GBP: 'British Pound',
+  HKD: 'Hong Kong Dollar', HUF: 'Hungarian Forint', IDR: 'Indonesian Rupiah', ILS: 'Israeli New Shekel',
+  INR: 'Indian Rupee', ISK: 'Icelandic Króna', JPY: 'Japanese Yen', KRW: 'South Korean Won',
+  MXN: 'Mexican Peso', MYR: 'Malaysian Ringgit', NOK: 'Norwegian Krone', NZD: 'New Zealand Dollar',
+  PHP: 'Philippine Peso', PLN: 'Polish Złoty', RON: 'Romanian Leu', SEK: 'Swedish Krona',
+  SGD: 'Singapore Dollar', THB: 'Thai Baht', TRY: 'Turkish Lira', USD: 'United States Dollar',
+  ZAR: 'South African Rand',
+  ARS: 'Argentine Peso', CLP: 'Chilean Peso', COP: 'Colombian Peso', PEN: 'Peruvian Sol',
+  UYU: 'Uruguayan Peso', BOB: 'Bolivian Boliviano', PYG: 'Paraguayan Guaraní',
+  AED: 'UAE Dirham', SAR: 'Saudi Riyal', QAR: 'Qatari Riyal', KWD: 'Kuwaiti Dinar',
+  BHD: 'Bahraini Dinar', OMR: 'Omani Rial',
+  BGN: 'Bulgarian Lev', RSD: 'Serbian Dinar', UAH: 'Ukrainian Hryvnia', ALL: 'Albanian Lek',
+  BAM: 'Bosnia-Herzegovina Mark', MKD: 'Macedonian Denar', RUB: 'Russian Ruble'
+};
+function openCurrencyConverter() {
+  state.currencyModalOpen = true;
+  state.currencyError = '';
+  state.currencyDropdownOpen = null;
+  convertCurrency();
+}
+function closeCurrencyConverter() {
+  state.currencyModalOpen = false;
+  state.currencyDropdownOpen = null;
+  render();
+}
+function toggleCurrencyDropdown(which) {
+  state.currencyDropdownOpen = state.currencyDropdownOpen === which ? null : which;
+  render();
+}
+function closeCurrencyDropdown() {
+  state.currencyDropdownOpen = null;
+  render();
+}
+/* the dropdown is position:fixed (to escape the modal's own overflow:auto clipping on
+   mobile) and opens upward, sized to use all available space up to the top of the screen. */
+function positionCurrencyDropdown() {
+  if (!state.currencyDropdownOpen) return;
+  const btn = document.querySelector(`.tp-currency-combobox[data-which="${state.currencyDropdownOpen}"]`);
+  const panel = document.querySelector('.tp-currency-dropdown');
+  if (!btn || !panel) return;
+  const rect = btn.getBoundingClientRect();
+  const gap = 6, topSafe = 12;
+  panel.style.left = rect.left + 'px';
+  panel.style.width = rect.width + 'px';
+  panel.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+  panel.style.maxHeight = Math.max(120, rect.top - gap - topSafe) + 'px';
+}
+function selectCurrency(which, code) {
+  if (which === 'from') state.currencyFrom = code;
+  else state.currencyTo = code;
+  state.currencyDropdownOpen = null;
+  convertCurrency();
+}
+function swapCurrencies() {
+  const f = state.currencyFrom;
+  state.currencyFrom = state.currencyTo;
+  state.currencyTo = f;
+  state.currencyDropdownOpen = null;
+  convertCurrency();
+}
+async function convertCurrency() {
+  const amount = parseFloat(state.currencyAmount);
+  if (!(amount > 0)) {
+    state.currencyResult = null;
+    state.currencyError = 'יש להזין סכום תקין (גדול מ-0).';
+    render();
+    return;
+  }
+  if (state.currencyFrom === state.currencyTo) {
+    state.currencyResult = amount;
+    state.currencyRate = 1;
+    state.currencyDate = '';
+    state.currencyLoading = false;
+    render();
+    return;
+  }
+  state.currencyLoading = true;
+  state.currencyError = '';
+  render();
+  try {
+    const res = await fetch(`${CURRENCY_API}/${state.currencyFrom}`);
+    if (!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    const rate = data.rates && data.rates[state.currencyTo];
+    if (data.result !== 'success' || rate == null) throw new Error('bad data');
+    state.currencyRate = rate;
+    state.currencyResult = amount * rate;
+    state.currencyDate = data.time_last_update_utc ? data.time_last_update_utc.slice(0, 16) : '';
+  } catch (e) {
+    state.currencyError = 'שגיאה בטעינת שער החליפין. יש לבדוק חיבור לאינטרנט ולנסות שוב.';
+    state.currencyResult = null;
+  }
+  state.currencyLoading = false;
+  render();
+}
+
 /* =========================================================================
    SECTION: CHECKLIST
    ========================================================================= */
@@ -351,6 +483,18 @@ function switchTrip(id) {
   if (!target) return;
   applyTripToState(target);
   state.activeTab = 'itinerary';
+  persist();
+  render();
+}
+function deleteTrip(id) {
+  const target = state.trips.find(t => t.id === id);
+  if (!target) return;
+  if (state.trips.length <= 1) { alert('לא ניתן למחוק את הטיול היחיד'); return; }
+  if (!confirm(`למחוק את הטיול "${target.name}"? הפעולה אינה הפיכה.`)) return;
+  state.trips = state.trips.filter(t => t.id !== id);
+  if (id === state.currentTripId) {
+    applyTripToState(state.trips[0]);
+  }
   persist();
   render();
 }
@@ -515,6 +659,7 @@ function renderHeader() {
           <select id="tripSelect" class="tp-tripselect">
             ${state.trips.map(t => `<option value="${esc(t.id)}" ${t.id === state.currentTripId ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
           </select>
+          <button class="tp-btn-icon tp-btn-delete-trip" data-action="delete-trip" data-id="${esc(state.currentTripId)}" title="מחיקת הטיול הנוכחי">${ICO.trashSm}</button>
         </div>
         <div class="tp-timer">
           ${ICO.clock}
@@ -659,8 +804,13 @@ function renderBudget() {
   const over = remaining < 0;
   return `
   <section>
-    <h2 class="tp-h2">מעקב תקציב והוצאות</h2>
-    <p class="tp-lede" style="margin-bottom:18px;">לוח בקרה פיננסי לניהול תקציב הטיול לפי קטגוריות.</p>
+    <div class="tp-budget-headrow">
+      <div>
+        <h2 class="tp-h2">מעקב תקציב והוצאות</h2>
+        <p class="tp-lede">לוח בקרה פיננסי לניהול תקציב הטיול לפי קטגוריות.</p>
+      </div>
+      <button class="tp-btn-currency" data-action="open-currency-converter">${ICO.swap} המרת מטבע</button>
+    </div>
 
     <div class="tp-stat-grid">
       <div class="tp-stat-card primary">
@@ -809,6 +959,65 @@ function renderNewTripModal() {
   </div>`;
 }
 
+function renderCurrencyCombobox(which, codes) {
+  const selected = which === 'from' ? state.currencyFrom : state.currencyTo;
+  const open = state.currencyDropdownOpen === which;
+  return `
+  <div class="tp-currency-select-wrap">
+    <button type="button" class="tp-currency-combobox ${open ? 'is-open' : ''}" data-action="toggle-currency-dropdown" data-which="${which}">
+      <span class="fi fi-${CURRENCY_COUNTRY[selected] || 'xx'} tp-currency-flag"></span>
+      <span class="tp-currency-combobox-code">${esc(selected)}</span>
+      <span class="tp-currency-combobox-name">${esc(CURRENCY_NAMES[selected] || '')}</span>
+    </button>
+    ${open ? `
+    <div class="tp-currency-dropdown">
+      ${codes.map(c => `
+        <button type="button" class="tp-currency-dropdown-row ${c === selected ? 'is-selected' : ''}" data-action="select-currency" data-which="${which}" data-code="${c}">
+          <span class="fi fi-${CURRENCY_COUNTRY[c] || 'xx'} tp-currency-flag"></span>
+          <span class="tp-currency-dropdown-code">${c}</span>
+          <span class="tp-currency-dropdown-name">${esc(CURRENCY_NAMES[c] || '')}</span>
+        </button>`).join('')}
+    </div>` : ''}
+  </div>`;
+}
+function renderCurrencyModal() {
+  const codes = Object.keys(CURRENCY_NAMES).sort();
+  return `
+  <div class="tp-modal-overlay" data-action="modal-overlay-close">
+    <div class="tp-modal">
+      <h2>המרת מטבע</h2>
+      <p class="tp-modal-lede">שערי חליפין חיים, מתעדכנים מדי יום.</p>
+      <div class="tp-modal-grid">
+        <label class="tp-modal-label">סכום
+          <input id="currencyAmount" type="number" min="0" step="any" class="tp-modal-input" value="${esc(state.currencyAmount)}" data-autofocus>
+        </label>
+        <div class="tp-currency-row">
+          <label class="tp-modal-label">מ-
+            ${renderCurrencyCombobox('from', codes)}
+          </label>
+          <button type="button" class="tp-btn-icon tp-currency-swap" data-action="swap-currency" title="החלפת כיוון">${ICO.swap}</button>
+          <label class="tp-modal-label">אל
+            ${renderCurrencyCombobox('to', codes)}
+          </label>
+        </div>
+      </div>
+      ${state.currencyError ? `<div class="tp-modal-error">${esc(state.currencyError)}</div>` : ''}
+      <div class="tp-currency-result">
+        ${state.currencyLoading
+          ? `<span class="tp-currency-loading">טוען שער חליפין...</span>`
+          : state.currencyResult != null
+            ? `<div class="tp-currency-result-value">${fmtNum(parseFloat(state.currencyAmount) || 0)} ${esc(state.currencyFrom)} = ${fmtCurrencyResult(state.currencyResult)} ${esc(state.currencyTo)}</div>
+               <div class="tp-currency-result-rate">1 ${esc(state.currencyFrom)} = ${state.currencyRate != null ? state.currencyRate.toFixed(4) : ''} ${esc(state.currencyTo)}${state.currencyDate ? ' • עדכון: ' + esc(state.currencyDate) : ''}</div>`
+            : ''}
+      </div>
+      <div class="tp-modal-actions">
+        <button class="tp-modal-btn-primary" data-action="convert-currency">המרה</button>
+        <button class="tp-modal-btn-cancel" data-action="close-currency-converter">סגירה</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function focusMarked() {
   const el = document.querySelector('[data-autofocus]');
   if (!el) return;
@@ -829,6 +1038,7 @@ function render() {
     <div class="tp-root">
       ${renderHeader()}
       ${state.newTripOpen ? renderNewTripModal() : ''}
+      ${state.currencyModalOpen ? renderCurrencyModal() : ''}
       <main class="tp-main">
         ${state.activeTab === 'itinerary' ? renderItinerary() : ''}
         ${state.activeTab === 'budget' ? renderBudget() : ''}
@@ -847,6 +1057,7 @@ function render() {
   } else {
     focusMarked();
   }
+  positionCurrencyDropdown();
   scheduleAutoSave();
 }
 
@@ -872,7 +1083,8 @@ const INPUT_BINDINGS = {
   ntDays: v => { state.newTripDraft.days = v; },
   ntBudget: v => { state.newTripDraft.budget = v; },
   tripNameEditInput: v => { state.tripNameDraft = v; },
-  tripDateEditInput: v => { state.tripDateDraft = v; }
+  tripDateEditInput: v => { state.tripDateDraft = v; },
+  currencyAmount: v => { state.currencyAmount = v; }
 };
 const SUBMIT_ACTIONS = {
   'save-add-item': saveAddItem,
@@ -880,7 +1092,8 @@ const SUBMIT_ACTIONS = {
   'add-expense': addExpense,
   'add-todo': addTodo,
   'create-trip': createTrip,
-  'save-trip-info': saveTripInfo
+  'save-trip-info': saveTripInfo,
+  'convert-currency': convertCurrency
 };
 const SUBMIT_ON_ENTER = {
   draftTime: 'save-add-item', draftTitle: 'save-add-item', draftPrice: 'save-add-item', draftCategory: 'save-add-item',
@@ -888,10 +1101,14 @@ const SUBMIT_ON_ENTER = {
   expenseAmount: 'add-expense', expenseNote: 'add-expense', expenseCategory: 'add-expense',
   newTodoInput: 'add-todo',
   ntName: 'create-trip', ntStart: 'create-trip', ntDays: 'create-trip', ntBudget: 'create-trip',
-  tripNameEditInput: 'save-trip-info', tripDateEditInput: 'save-trip-info'
+  tripNameEditInput: 'save-trip-info', tripDateEditInput: 'save-trip-info',
+  currencyAmount: 'convert-currency'
 };
 
 function onRootClick(e) {
+  if (state.currencyDropdownOpen && !e.target.closest('.tp-currency-select-wrap')) {
+    closeCurrencyDropdown();
+  }
   const actionEl = e.target.closest('[data-action]');
   if (!actionEl) return;
   const action = actionEl.dataset.action;
@@ -915,10 +1132,22 @@ function onRootClick(e) {
     case 'add-todo': addTodo(); break;
     case 'toggle-todo': toggleTodo(actionEl.dataset.list, actionEl.dataset.id); break;
     case 'delete-todo': deleteTodo(actionEl.dataset.list, actionEl.dataset.id); break;
-    case 'modal-overlay-close': if (e.target === actionEl) cancelNewTrip(); break;
+    case 'modal-overlay-close':
+      if (e.target === actionEl) {
+        if (state.newTripOpen) cancelNewTrip();
+        else if (state.currencyModalOpen) closeCurrencyConverter();
+      }
+      break;
+    case 'delete-trip': deleteTrip(actionEl.dataset.id); break;
     case 'edit-trip-info': startEditTripInfo(); break;
     case 'save-trip-info': saveTripInfo(); break;
     case 'cancel-trip-info': cancelEditTripInfo(); break;
+    case 'open-currency-converter': openCurrencyConverter(); break;
+    case 'close-currency-converter': closeCurrencyConverter(); break;
+    case 'convert-currency': convertCurrency(); break;
+    case 'swap-currency': swapCurrencies(); break;
+    case 'toggle-currency-dropdown': toggleCurrencyDropdown(actionEl.dataset.which); break;
+    case 'select-currency': selectCurrency(actionEl.dataset.which, actionEl.dataset.code); break;
   }
 }
 function onRootInputOrChange(e) {
@@ -930,6 +1159,8 @@ function onRootInputOrChange(e) {
 function onRootKeydown(e) {
   if (e.key === 'Escape') {
     if (state.newTripOpen) cancelNewTrip();
+    else if (state.currencyDropdownOpen) closeCurrencyDropdown();
+    else if (state.currencyModalOpen) closeCurrencyConverter();
     else if (state.addingItem) cancelAdd();
     else if (state.editingItemId) cancelEditItem();
     else if (state.editingTripInfo) cancelEditTripInfo();
