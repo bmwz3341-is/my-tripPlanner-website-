@@ -253,11 +253,12 @@ a:hover{ color:var(--primary-hover); }
 .tp-stat-card.plain .tp-stat-label{ color:#000; font-weight:700; }
 .tp-stat-value{ font-size:22px; font-weight:800; }
 .tp-stat-value.is-over{ color:var(--danger); }
-.tp-budgettotal-row{ display:flex; align-items:center; gap:6px; }
+.tp-budgettotal-row{ display:flex; align-items:center; gap:6px; cursor:text; }
 .tp-budgettotal-input{
   background:transparent; border:none; border-bottom:1px solid #4453A0;
   color:var(--white); font-size:22px; font-weight:800; width:100px; padding:0;
 }
+.tp-budgettotal-editicon{ display:flex; color:#8f9ad6; flex-shrink:0; }
 .tp-currency{ font-size:22px; font-weight:800; }
 
 .tp-budget-headrow{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }

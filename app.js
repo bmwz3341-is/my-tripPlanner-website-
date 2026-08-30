@@ -890,9 +890,10 @@ function renderBudget() {
     <div class="tp-stat-grid">
       <div class="tp-stat-card primary">
         <div class="tp-stat-label">תקציב כולל</div>
-        <div class="tp-budgettotal-row">
-          <input id="budgetTotalInput" class="tp-budgettotal-input" value="${esc(state.budgetTotal)}">
-        </div>
+        <label class="tp-budgettotal-row" title="ניתן לעדכן את הסכום בכל עת">
+          <input id="budgetTotalInput" class="tp-budgettotal-input" title="ניתן לעדכן את הסכום בכל עת" value="${esc(state.budgetTotal)}">
+          <span class="tp-budgettotal-editicon">${ICO.pencil}</span>
+        </label>
       </div>
       <div class="tp-stat-card plain">
         <div class="tp-stat-label">סה"כ הוצאות</div>
