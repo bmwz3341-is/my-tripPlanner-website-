@@ -338,6 +338,11 @@ function closeCurrencyConverter() {
   render();
 }
 function toggleCurrencyDropdown(which) {
+  /* iOS Safari doesn't move focus to a tapped <button>, so without this the amount input
+     (autofocused on modal open) stays focused, its keyboard stays up, and the dropdown gets
+     positioned against the pre-keyboard window.innerHeight — appearing cut off or hidden
+     under the keyboard. Blurring first dismisses the keyboard before we measure/position. */
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   state.currencyDropdownOpen = state.currencyDropdownOpen === which ? null : which;
   render();
 }
@@ -1182,5 +1187,9 @@ function init() {
   root.addEventListener('change', onRootInputOrChange);
   root.addEventListener('keydown', onRootKeydown);
   window.addEventListener('beforeunload', flushAutoSave);
+  /* keeps the currency dropdown aligned with its button while the iOS keyboard
+     closes or the address bar shows/hides — both resize the viewport after the dropdown
+     was already positioned once in render(). */
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', positionCurrencyDropdown);
 }
 document.addEventListener('DOMContentLoaded', init);
