@@ -245,7 +245,7 @@ a:hover{ color:var(--primary-hover); }
    BUDGET
    ========================================================= */
 .tp-stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
-.tp-stat-card{ border-radius:var(--radius-3xl); padding:18px 20px; }
+.tp-stat-card{ border-radius:var(--radius-3xl); padding:18px 20px; position:relative; }
 .tp-stat-card.primary{ background:var(--ink); color:var(--white); }
 .tp-stat-card.plain{ background:var(--white); box-shadow:var(--shadow-card); }
 .tp-stat-label{ font-size:14px; margin-bottom:6px; }
@@ -253,6 +253,13 @@ a:hover{ color:var(--primary-hover); }
 .tp-stat-card.plain .tp-stat-label{ color:#000; font-weight:700; }
 .tp-stat-value{ font-size:22px; font-weight:800; }
 .tp-stat-value.is-over{ color:var(--danger); }
+.tp-stat-label-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.tp-stat-label-row .tp-stat-label{ margin-bottom:0; }
+.tp-info-btn{
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.5);
+  background:transparent; color:rgba(255,255,255,0.85); padding:0;
+}
 .tp-budgettotal-row{ display:flex; align-items:center; gap:6px; cursor:text; }
 .tp-budgettotal-input{
   background:transparent; border:none; border-bottom:1px solid #4453A0;
@@ -260,6 +267,11 @@ a:hover{ color:var(--primary-hover); }
 }
 .tp-budgettotal-editicon{ display:flex; color:#8f9ad6; flex-shrink:0; }
 .tp-currency{ font-size:22px; font-weight:800; }
+.tp-budget-info-popover{
+  position:absolute; top:calc(100% + 8px); right:0; left:0; z-index:20;
+  background:var(--white); color:var(--ink); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-modal); padding:12px 14px; font-size:13px; line-height:1.6; font-weight:400;
+}
 
 .tp-budget-headrow{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
 .tp-btn-currency{

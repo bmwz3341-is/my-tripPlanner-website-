@@ -28,7 +28,8 @@ const ICO = {
   navTodo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l2.5 2.5L16 9"/></svg>',
   navBudget: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="15" cy="14.5" r="1.5" fill="currentColor" stroke="none"/></svg>',
   navItin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
-  swap: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-4-4"/><path d="M17 17H4l4 4"/></svg>'
+  swap: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-4-4"/><path d="M17 17H4l4 4"/></svg>',
+  info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.5" fill="currentColor"/></svg>'
 };
 const ICON_PATHS = {
   transport: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="10" rx="2"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/><path d="M3 11h18"/></svg>',
@@ -169,6 +170,7 @@ const state = {
   currencyLoading: false,
   currencyError: '',
   currencyDropdownOpen: null,
+  budgetInfoOpen: false,
 };
 
 function loadStore() {
@@ -872,6 +874,14 @@ function renderCategoryPie(spentTotal) {
     </div>
   </div>`;
 }
+function toggleBudgetInfo() {
+  state.budgetInfoOpen = !state.budgetInfoOpen;
+  render();
+}
+function closeBudgetInfo() {
+  state.budgetInfoOpen = false;
+  render();
+}
 function renderBudget() {
   const total = parseFloat(state.budgetTotal) || 0;
   const spent = totalSpent();
@@ -888,12 +898,20 @@ function renderBudget() {
     </div>
 
     <div class="tp-stat-grid">
-      <div class="tp-stat-card primary">
-        <div class="tp-stat-label">תקציב כולל</div>
+      <div class="tp-stat-card primary tp-budget-info-wrap">
+        <div class="tp-stat-label-row">
+          <div class="tp-stat-label">תקציב כולל</div>
+          <button type="button" class="tp-info-btn" data-action="toggle-budget-info" title="מידע על שדה התקציב הכולל">${ICO.info}</button>
+        </div>
         <label class="tp-budgettotal-row" title="ניתן לעדכן את הסכום בכל עת">
           <input id="budgetTotalInput" class="tp-budgettotal-input" title="ניתן לעדכן את הסכום בכל עת" value="${esc(state.budgetTotal)}">
           <span class="tp-budgettotal-editicon">${ICO.pencil}</span>
         </label>
+        ${state.budgetInfoOpen ? `
+        <div class="tp-budget-info-popover">
+          זהו הסכום הכולל שהקציתם לטיול כולו. השדה דינמי — ניתן להקליד בו סכום חדש בכל שלב,
+          וההוצאות, היתרה ותרשים הפילוח למטה יתעדכנו מיד בהתאם. השינוי נשמר אוטומטית, ללא צורך באישור.
+        </div>` : ''}
       </div>
       <div class="tp-stat-card plain">
         <div class="tp-stat-label">סה"כ הוצאות</div>
@@ -1184,6 +1202,9 @@ function onRootClick(e) {
   if (state.currencyDropdownOpen && !e.target.closest('.tp-currency-select-wrap')) {
     closeCurrencyDropdown();
   }
+  if (state.budgetInfoOpen && !e.target.closest('.tp-budget-info-wrap')) {
+    closeBudgetInfo();
+  }
   const actionEl = e.target.closest('[data-action]');
   if (!actionEl) return;
   const action = actionEl.dataset.action;
@@ -1222,6 +1243,7 @@ function onRootClick(e) {
     case 'convert-currency': convertCurrency(); break;
     case 'swap-currency': swapCurrencies(); break;
     case 'toggle-currency-dropdown': toggleCurrencyDropdown(actionEl.dataset.which); break;
+    case 'toggle-budget-info': toggleBudgetInfo(); break;
     case 'select-currency': selectCurrency(actionEl.dataset.which, actionEl.dataset.code); break;
   }
 }
@@ -1236,6 +1258,7 @@ function onRootKeydown(e) {
     if (state.newTripOpen) cancelNewTrip();
     else if (state.currencyDropdownOpen) closeCurrencyDropdown();
     else if (state.currencyModalOpen) closeCurrencyConverter();
+    else if (state.budgetInfoOpen) closeBudgetInfo();
     else if (state.addingItem) cancelAdd();
     else if (state.editingItemId) cancelEditItem();
     else if (state.editingTripInfo) cancelEditTripInfo();
