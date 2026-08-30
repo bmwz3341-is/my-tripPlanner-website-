@@ -350,19 +350,39 @@ function closeCurrencyDropdown() {
   state.currencyDropdownOpen = null;
   render();
 }
-/* the dropdown is position:fixed (to escape the modal's own overflow:auto clipping on
-   mobile) and opens upward, sized to use all available space up to the top of the screen. */
+/* the dropdown is position:fixed (to escape the modal's own overflow:auto clipping on mobile),
+   opening whichever direction (up or down) currently has more visible room. */
 function positionCurrencyDropdown() {
   if (!state.currencyDropdownOpen) return;
   const btn = document.querySelector(`.tp-currency-combobox[data-which="${state.currencyDropdownOpen}"]`);
   const panel = document.querySelector('.tp-currency-dropdown');
   if (!btn || !panel) return;
   const rect = btn.getBoundingClientRect();
-  const gap = 6, topSafe = 12;
+  /* visualViewport tracks what's actually on screen (it shrinks and its offsetTop moves down when
+     the iOS keyboard is up or the page auto-scrolls a focused input into view), while
+     getBoundingClientRect()/fixed positioning both use the layout viewport's coordinate space —
+     visualViewport.offsetTop is defined in that same space, so mixing them here is safe. Always
+     opening upward (as before) broke once the row ended up scrolled near the top of the screen:
+     there was barely any room above it, so the panel got clamped tiny or missed the visible area
+     entirely. Instead pick whichever side actually has more visible room. */
+  const vv = window.visualViewport;
+  const viewTop = vv ? vv.offsetTop : 0;
+  const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+  const gap = 6, edgeSafe = 12;
+  const spaceAbove = rect.top - viewTop - edgeSafe;
+  const spaceBelow = viewBottom - rect.bottom - edgeSafe;
+
   panel.style.left = rect.left + 'px';
   panel.style.width = rect.width + 'px';
-  panel.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
-  panel.style.maxHeight = Math.max(120, rect.top - gap - topSafe) + 'px';
+  if (spaceBelow >= spaceAbove) {
+    panel.style.top = (rect.bottom + gap) + 'px';
+    panel.style.bottom = 'auto';
+    panel.style.maxHeight = Math.max(120, spaceBelow - gap) + 'px';
+  } else {
+    panel.style.top = 'auto';
+    panel.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+    panel.style.maxHeight = Math.max(120, spaceAbove - gap) + 'px';
+  }
 }
 function selectCurrency(which, code) {
   if (which === 'from') state.currencyFrom = code;
@@ -1190,6 +1210,9 @@ function init() {
   /* keeps the currency dropdown aligned with its button while the iOS keyboard
      closes or the address bar shows/hides — both resize the viewport after the dropdown
      was already positioned once in render(). */
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', positionCurrencyDropdown);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', positionCurrencyDropdown);
+    window.visualViewport.addEventListener('scroll', positionCurrencyDropdown);
+  }
 }
 document.addEventListener('DOMContentLoaded', init);
