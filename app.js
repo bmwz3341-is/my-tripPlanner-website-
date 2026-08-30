@@ -326,10 +326,60 @@ const CURRENCY_NAMES = {
   BGN: 'Bulgarian Lev', RSD: 'Serbian Dinar', UAH: 'Ukrainian Hryvnia', ALL: 'Albanian Lek',
   BAM: 'Bosnia-Herzegovina Mark', MKD: 'Macedonian Denar', RUB: 'Russian Ruble'
 };
+/* heuristic destination -> currency guesser: matches free-text keywords (city/country names, as
+   typed in the trip name, e.g. "טיול לונדון") against the currency the trip is most likely in.
+   Keeps to currencies already in CURRENCY_NAMES/CURRENCY_COUNTRY above — no new currencies added.
+   Longer/more specific keywords are listed first so e.g. "דרום אפריקה" doesn't get shadowed. */
+const TRIP_DESTINATION_CURRENCY = [
+  [['ניו יורק', 'לוס אנג\'לס', 'קליפורניה', 'שיקגו', 'מיאמי', 'לאס וגאס', 'וגאס', 'בוסטון', 'וושינגטון', 'ארה"ב', 'ארצות הברית', 'אמריקה'], 'USD'],
+  [['לונדון', 'אנגליה', 'בריטניה', 'סקוטלנד', 'אדינבורו', 'מנצ\'סטר'], 'GBP'],
+  [['פריז', 'צרפת', 'רומא', 'איטליה', 'מילאנו', 'ונציה', 'פירנצה', 'ספרד', 'ברצלונה', 'מדריד',
+    'גרמניה', 'ברלין', 'מינכן', 'הולנד', 'אמסטרדם', 'פורטוגל', 'ליסבון', 'יוון', 'אתונה', 'כרתים',
+    'אוסטריה', 'וינה', 'בלגיה', 'בריסל', 'אירלנד', 'דבלין', 'פינלנד', 'הלסינקי'], 'EUR'],
+  [['שוויץ', 'ציריך', 'ז\'נבה'], 'CHF'],
+  [['נורווגיה', 'אוסלו'], 'NOK'],
+  [['שוודיה', 'שטוקהולם'], 'SEK'],
+  [['דנמרק', 'קופנהגן'], 'DKK'],
+  [['פולין', 'ורשה', 'קרקוב'], 'PLN'],
+  [['צ\'כיה', 'פראג'], 'CZK'],
+  [['הונגריה', 'בודפשט'], 'HUF'],
+  [['טורקיה', 'איסטנבול', 'אנטליה'], 'TRY'],
+  [['תאילנד', 'בנגקוק', 'פוקט'], 'THB'],
+  [['יפן', 'טוקיו', 'אוסקה', 'קיוטו'], 'JPY'],
+  [['סין', 'בייג\'ינג', 'שנגחאי'], 'CNY'],
+  [['קוריאה', 'סיאול'], 'KRW'],
+  [['הודו', 'דלהי', 'מומבאי'], 'INR'],
+  [['אינדונזיה', 'באלי'], 'IDR'],
+  [['מלזיה', 'קואלה לומפור'], 'MYR'],
+  [['סינגפור'], 'SGD'],
+  [['הונג קונג'], 'HKD'],
+  [['דובאי', 'איחוד האמירויות', 'אבו דאבי'], 'AED'],
+  [['ערב הסעודית', 'ריאד'], 'SAR'],
+  [['קטר', 'דוחה'], 'QAR'],
+  [['ישראל', 'תל אביב', 'ירושלים', 'אילת'], 'ILS'],
+  [['דרום אפריקה', 'קייפטאון'], 'ZAR'],
+  [['אוסטרליה', 'סידני', 'מלבורן'], 'AUD'],
+  [['ניו זילנד', 'אוקלנד'], 'NZD'],
+  [['קנדה', 'טורונטו', 'ונקובר', 'מונטריאול'], 'CAD'],
+  [['ברזיל', 'ריו', 'סאו פאולו'], 'BRL'],
+  [['ארגנטינה', 'בואנוס איירס'], 'ARS'],
+  [['צ\'ילה', 'סנטיאגו'], 'CLP'],
+  [['קולומביה', 'בוגוטה'], 'COP'],
+  [['מקסיקו', 'קנקון'], 'MXN']
+];
+function guessTripCurrency(name) {
+  if (!name) return null;
+  for (const [keywords, code] of TRIP_DESTINATION_CURRENCY) {
+    if (keywords.some(k => name.includes(k))) return code;
+  }
+  return null;
+}
 function openCurrencyConverter() {
   state.currencyModalOpen = true;
   state.currencyError = '';
   state.currencyDropdownOpen = null;
+  const guess = guessTripCurrency(state.tripName);
+  if (guess) state.currencyFrom = guess;
   convertCurrency();
 }
 function closeCurrencyConverter() {
