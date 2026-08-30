@@ -891,17 +891,16 @@ function renderBudget() {
       <div class="tp-stat-card primary">
         <div class="tp-stat-label">תקציב כולל</div>
         <div class="tp-budgettotal-row">
-          <span class="tp-currency">${DEFAULT_CURRENCY}</span>
           <input id="budgetTotalInput" class="tp-budgettotal-input" value="${esc(state.budgetTotal)}">
         </div>
       </div>
       <div class="tp-stat-card plain">
         <div class="tp-stat-label">סה"כ הוצאות</div>
-        <div class="tp-stat-value">${DEFAULT_CURRENCY}${fmtNum(spent)}</div>
+        <div class="tp-stat-value">${fmtNum(spent)}</div>
       </div>
       <div class="tp-stat-card plain">
         <div class="tp-stat-label">נותר בתקציב</div>
-        <div class="tp-stat-value ${over ? 'is-over' : ''}">${DEFAULT_CURRENCY}${fmtNum(remaining)}</div>
+        <div class="tp-stat-value ${over ? 'is-over' : ''}">${fmtNum(remaining)}</div>
       </div>
     </div>
 
